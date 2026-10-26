@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoClean | Intelligent CSV Data Preprocessing Pipeline</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-group">
+                <div class="logo-icon">✨</div>
+                <div>
+                    <h1>AutoClean <span>Pipeline</span></h1>
+                    <p class="subtitle">Drop in your raw CSV dataset — clean, encode, scale, and deliver in seconds.</p>
+                </div>
+            </div>
+            <div class="badge-tag">v2.0 • Automated ML Ready</div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="main-content">
+            
+            <!-- Upload & Configuration Card -->
+            <section class="card upload-config-card">
+                <div class="card-header">
+                    <h2><span class="step-num">1</span> Input Dataset</h2>
+                    <button id="load-sample-btn" class="btn btn-secondary btn-sm">
+                        ⚡ Load Sample Messy Dataset
+                    </button>
+                </div>
+
+                <!-- Drag & Drop Zone -->
+                <div id="drop-zone" class="drop-zone">
+                    <input type="file" id="file-input" accept=".csv" class="file-input">
+                    <div class="drop-zone-content">
+                        <div class="upload-icon">📂</div>
+                        <h3>Drag & Drop your CSV file here</h3>
+                        <p>or <span class="browse-link">browse files</span> from your computer</p>
+                        <span class="file-limits">Supports UTF-8, Latin1, standard CSV, TSV, or Semicolon delimiters</span>
+                    </div>
+                </div>
+
+                <!-- File Loaded Status -->
+                <div id="file-info-bar" class="file-info-bar hidden">
+                    <div class="file-details">
+                        <span class="file-icon">📄</span>
+                        <div>
+                            <strong id="file-name-display">dataset.csv</strong>
+                            <div class="file-stats">
+                                <span id="file-rows-display">0 rows</span> • 
+                                <span id="file-cols-display">0 columns</span> • 
+                                <span id="file-missing-display" class="warn-text">0 missing values</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="change-file-btn" class="btn btn-text">Change File</button>
+                </div>
+
+                <!-- Configuration Options -->
+                <div id="config-panel" class="config-panel">
+                    <h3 class="config-title">⚙️ Preprocessing Options</h3>
+                    
+                    <div class="config-grid">
+                        <!-- Target Column -->
+                        <div class="config-field">
+                            <label for="target-col-select">Target Column (Optional)</label>
+                            <select id="target-col-select" class="form-control">
+                                <option value="">-- No Target (Unsupervised / All Features) --</option>
+                            </select>
+                            <small class="field-hint">Target column is protected from feature scaling/encoding</small>
+                        </div>
+
+                        <!-- Numeric Scaling -->
+                        <div class="config-field">
+                            <label for="scaling-select">Numerical Scaling</label>
+                            <select id="scaling-select" class="form-control">
+                                <option value="standard" selected>StandardScaler (Zero Mean, Unit Var)</option>
+                                <option value="minmax">MinMaxScaler (Scale to 0 - 1)</option>
+                                <option value="robust">RobustScaler (Median & IQR Robust)</option>
+                                <option value="none">None (Keep Raw Values)</option>
+                            </select>
+                        </div>
+
+                        <!-- Categorical Encoding -->
+                        <div class="config-field">
+                            <label for="encoding-select">Categorical Encoding</label>
+                            <select id="encoding-select" class="form-control">
+                                <option value="auto" selected>Auto (One-Hot ≤ 10, Label > 10)</option>
+                                <option value="onehot">One-Hot Encoding (All)</option>
+                                <option value="label">Label / Ordinal Encoding</option>
+                                <option value="frequency">Frequency / Target Count</option>
+                                <option value="none">None (Keep Raw Strings)</option>
+                            </select>
+                        </div>
+
+                        <!-- Outlier Handling -->
+                        <div class="config-field">
+                            <label for="outlier-select">Outlier Treatment</label>
+                            <select id="outlier-select" class="form-control">
+                                <option value="iqr-clip" selected>IQR Method (Clip Bounds [1.5x])</option>
+                                <option value="zscore-clip">Z-Score Method (Clip Bounds [±3σ])</option>
+                                <option value="iqr-drop">IQR Method (Drop Rows)</option>
+                                <option value="none">None (Preserve Outliers)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Checkbox Toggles -->
+                    <div class="toggle-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="drop-duplicates-check" checked>
+                            <span>Deduplicate identical rows</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="drop-constant-check" checked>
+                            <span>Drop constant & high-missing (>80%) columns</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="extract-datetime-check" checked>
+                            <span>Decompose Datetimes (Year, Month, Day, DayOfWeek, Weekend)</span>
+                        </label>
+                    </div>
+
+                    <!-- Process Trigger Button -->
+                    <div class="action-btn-container">
+                        <button id="process-btn" class="btn btn-primary btn-large" disabled>
+                            🚀 Execute Preprocessing Pipeline
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Spinner State -->
+            <div id="loading-state" class="loading-state hidden">
+                <div class="spinner"></div>
+                <h3>Processing your dataset...</h3>
+                <p>Detecting semantic types, pruning garbage, imputing nulls, clipping outliers & scaling features.</p>
+            </div>
+
+            <!-- Preprocessing Results Section -->
+            <section id="results-section" class="results-section hidden">
+                <div class="card results-card">
+                    <div class="card-header">
+                        <div>
+                            <h2><span class="step-num">2</span> Preprocessing Completed</h2>
+                            <p class="subtitle" id="execution-time-badge">Processed in 0.08 seconds</p>
+                        </div>
+                        <div class="download-group">
+                            <a id="download-csv-btn" href="#" class="btn btn-success">
+                                📥 Download Cleaned CSV
+                            </a>
+                            <a id="download-report-btn" href="#" class="btn btn-secondary">
+                                📄 Audit Report
+                            </a>
+                            <a id="download-model-btn" href="#" class="btn btn-secondary">
+                                💾 Fitted Model (.joblib)
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Overview -->
+                    <div class="stats-overview-grid">
+                        <div class="stat-card">
+                            <span class="stat-title">Input Dimensions</span>
+                            <div class="stat-value" id="stat-input-shape">0 x 0</div>
+                            <span class="stat-meta" id="stat-input-mem">0 MB</span>
+                        </div>
+                        <div class="stat-card highlight">
+                            <span class="stat-title">Output Dimensions</span>
+                            <div class="stat-value" id="stat-output-shape">0 x 0</div>
+                            <span class="stat-meta" id="stat-output-mem">0 MB</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">Duplicates Removed</span>
+                            <div class="stat-value text-accent" id="stat-duplicates">0</div>
+                            <span class="stat-meta">Exact row duplicates</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">Outliers Handled</span>
+                            <div class="stat-value text-accent" id="stat-outliers">0</div>
+                            <span class="stat-meta">Clipped within bounds</span>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Audit Summary Tags -->
+                    <div class="audit-tags-container">
+                        <div class="audit-group">
+                            <strong>Pruned Columns:</strong>
+                            <div id="tags-pruned" class="tag-list">None</div>
+                        </div>
+                        <div class="audit-group">
+                            <strong>Encoded Categoricals:</strong>
+                            <div id="tags-encoded" class="tag-list">None</div>
+                        </div>
+                        <div class="audit-group">
+                            <strong>Extracted Datetime:</strong>
+                            <div id="tags-datetime" class="tag-list">None</div>
+                        </div>
+                    </div>
+
+                    <!-- Results Preview Tabs -->
+                    <div class="tabs-container">
+                        <div class="tab-nav">
+                            <button class="tab-btn active" data-tab="tab-cleaned">✨ Cleaned Data Preview</button>
+                            <button class="tab-btn" data-tab="tab-raw">📋 Original Raw Data</button>
+                            <button class="tab-btn" data-tab="tab-audit">📜 Full Audit Summary</button>
+                        </div>
+
+                        <!-- Tab: Cleaned Data Preview -->
+                        <div id="tab-cleaned" class="tab-pane active">
+                            <div class="table-responsive">
+                                <table id="cleaned-table" class="data-table">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Raw Data Preview -->
+                        <div id="tab-raw" class="tab-pane">
+                            <div class="table-responsive">
+                                <table id="raw-table" class="data-table">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Full Audit Summary -->
+                        <div id="tab-audit" class="tab-pane">
+                            <pre id="audit-log-text" class="audit-code-box"></pre>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Automated Tabular Data Preprocessing Pipeline • Powered by Python, Pandas & Scikit-Learn</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

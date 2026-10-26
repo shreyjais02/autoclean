@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dynamic Data files (preserve folder structure via .gitkeep)
+data/input/*
+!data/input/.gitkeep
+data/output/*
+!data/output/.gitkeep
+data/web_uploads/*
+!data/web_uploads/.gitkeep
+data/web_outputs/*
+!data/web_outputs/.gitkeep
+
+# Saved model artifacts
+*.joblib
+*.pkl
